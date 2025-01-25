@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 import allWords from './data/words_alpha_five.json'
 import allPatterns from './data/allPatterns.json'
