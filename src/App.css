@@ -40,3 +40,27 @@
 .read-the-docs {
   color: #888;
 }
+
+/* added from GPT */
+.App {
+  text-align: center;
+  margin-top: 50px;
+}
+
+input {
+  font-size: 20px;
+  padding: 10px;
+}
+
+button {
+  padding: 10px;
+  margin-left: 10px;
+}
+
+.board {
+  margin-top: 20px;
+}
+
+.board div {
+  margin-bottom: 10px;
+}
