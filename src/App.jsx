@@ -14,9 +14,9 @@ function colorFunction(patternCode) {
     case GuessEnum.PLACE:
       return "yellow";
     case GuessEnum.WRONG:
-      return "gainsboro";
-    case GuessEnum.UNUSED:
       return "gray";
+    case GuessEnum.UNUSED:
+      return "gainsboro";
   }
   return "black";
 }
@@ -70,8 +70,7 @@ function App() {
   const [guess, setGuess] = useState('');
   const [history, setHistory] = useState([]);
   const [possibleWords, setPossibleWords] = useState(allWords); // Assume you have a list of possible words
-//  const [triedInvalidWord, setTriedInvalidWord] = useState(false);
-//  const [guessIsValidWord, setGuessIsValidWord] = useState(false);
+  const [answer, setAnswer] = useState('');
   const [gameOver, setGameOver] = useState(false);
   const [keymap, setKeymap] = useState(defaultKeymap); 
 
@@ -147,6 +146,7 @@ function App() {
 
       if (effectivePattern == [GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT].join("")) {
         setGameOver(true);
+        setAnswer(submittedGuess);
       }
 
       setGuess('');
@@ -283,8 +283,6 @@ function App() {
   return (
     <div className="App">
       <h1>Hurtle</h1>
-      {gameOver ? <p>Game Over! You’ve narrowed it down!</p> : null}
-      
       <div className="board">
         {history.map((entry) => (
           <FormatGuess submittedGuess={entry.submittedGuess} pattern={entry.effectivePattern} />
@@ -295,6 +293,7 @@ function App() {
           { guess.length == 5 ? guess : (guess + "_").padEnd(5) }
         </span>
       </div>
+      {gameOver ? <h2>You did it! The word was obviously <a target="_blank" rel="noopener noreferrer" href={"https://www.merriam-webster.com/dictionary/" + answer}>{answer}</a></h2> : null}      
       <div className="keyboard">
         <FormatKeymap keymap={keymap} letterClickFunction={addCharacterToGuess} />
       </div>
