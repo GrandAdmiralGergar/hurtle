@@ -3,6 +3,7 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  line-height: 1;
 }
 
 .logo {
@@ -58,9 +59,18 @@ button {
 }
 
 .board {
-  margin-top: 20px;
 }
 
 .board div {
-  margin-bottom: 10px;
+  font-size: 3em;
+}
+
+.keyboard {
+  margin-top: 80px;
+  font-size: 3em;
+}
+
+.note {
+  margin-top: 30px;
+  font-size: 1.5em;
 }

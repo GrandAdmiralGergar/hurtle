@@ -2,36 +2,72 @@ import { useState } from 'react'
 import './App.css'
 import allWords from './data/words_alpha_five.json'
 import allPatterns from './data/allPatterns.json'
+import defaultKeymap from './data/defaultKeymap.json'
+import defaultKeyPositions from './data/defaultKeyPositions.json'
 import GuessEnum from './guessEnum'
 
-// function App() {
-//   const [count, setCount] = useState(0)
 
-//   return (
-//     <>
-//       <div>
-//         <a href="https://vite.dev" target="_blank">
-//           <img src={viteLogo} className="logo" alt="Vite logo" />
-//         </a>
-//         <a href="https://react.dev" target="_blank">
-//           <img src={reactLogo} className="logo react" alt="React logo" />
-//         </a>
-//       </div>
-//       <h1>Vite + React</h1>
-//       <div className="card">
-//         <button onClick={() => setCount((count) => count + 1)}>
-//           count is {count}
-//         </button>
-//         <p>
-//           Edit <code>src/App.jsx</code> and save to test HMR
-//         </p>
-//       </div>
-//       <p className="read-the-docs">
-//         Click on the Vite and React logos to learn more
-//       </p>
-//     </>
-//   )
-// }
+function colorFunction(patternCode) {
+  switch(patternCode) {
+    case GuessEnum.CORRECT:
+      return "green";
+    case GuessEnum.PLACE:
+      return "yellow";
+    case GuessEnum.WRONG:
+      return "gainsboro";
+    case GuessEnum.UNUSED:
+      return "gray";
+  }
+  return "black";
+}
+
+function FormatGuess({ guess, pattern }) {
+  // Turns a guess text string and the results pattern into something more colorful and actionable
+  const spans = [];
+
+  for (let index = 0; index < guess.length; ++index){
+    spans.push(
+      <span key={guess + index} style={{ fontFamily: 'monospace', backgroundColor:colorFunction(parseInt(pattern[index])) }}>
+        {guess[index]}
+      </span>
+    )
+  }
+
+  return (
+    <div>{spans}</div>
+  );
+}
+
+/**
+ * 
+ * @param {keymap} keymap 
+ */
+function FormatKeymap({keymap}) {
+  //const keys = Object.keys(keymap);
+
+  const rowSpans = [];
+
+  console.log(defaultKeyPositions);
+  console.log(keymap);
+
+  for(let row=0; row<defaultKeyPositions.length; ++row)
+  {
+    const spans = []
+    for(let letter = 0; letter < defaultKeyPositions[row].length; ++letter) {
+      spans.push(
+        <span key={defaultKeyPositions[row][letter]} style={{ fontFamily: 'monospace', backgroundColor:colorFunction(keymap[defaultKeyPositions[row][letter]])}}>
+          {defaultKeyPositions[row][letter]}
+        </span>
+      )
+    }
+    rowSpans.push(<div key={row}>{spans}</div>);
+  }
+
+  console.log(rowSpans);
+  return (
+    <div>{rowSpans}</div>
+  );
+}
 
 function App() {
   // State for game
@@ -39,20 +75,24 @@ function App() {
   const [history, setHistory] = useState([]);
   const [possibleWords, setPossibleWords] = useState(allWords); // Assume you have a list of possible words
   const [gameOver, setGameOver] = useState(false);
+  const [keymap, setKeymap] = useState(defaultKeymap); 
 
   // Function to handle guess submission
   const handleSubmit = () => {
     // Assuming 5-letter words
     if (guess.trim().length === 5) { 
-      const feedback = getFeedback(guess, possibleWords); // You'll implement this feedback function
-
-      setHistory([...history, { guess, feedback }]);
 
       const result = filterPossibleWordsWithPattern(guess, possibleWords);
-      
+
+      const effectivePattern = result.pattern;
+
+      setHistory([...history, { guess, effectivePattern }]);
+
       console.log("Largest remaining pattern was: " + result.pattern + " with " + result.remainingWords.length + " words remaining");
 
       setPossibleWords(result.remainingWords);
+
+      updateKeymap(guess, effectivePattern);
 
       if (possibleWords.length === 1) {
         setGameOver(true);
@@ -60,11 +100,6 @@ function App() {
 
       setGuess('');
     }
-  };
-
-  const getFeedback = (guess, words) => {
-    // Implement logic here to compare the guess with words
-    // and return feedback such as 'correct', 'incorrect', etc.
   };
 
   const filterPossibleWordsWithPattern = (guess, remainingWords) => {
@@ -83,7 +118,8 @@ function App() {
     for (let i = 0; i < remainingWords.length; ++i){
       const determinedPattern = generatePatternDifferential(remainingWords[i], guess);
 
-      console.log(determinedPattern);
+      // console.log(determinedPattern);
+
       // Add the word to the correct set
       // NOTE: using push intentionally for optimization, screw you internet!
       patternsMap.get(determinedPattern).push(remainingWords[i]);
@@ -109,8 +145,8 @@ function App() {
     // Generates a pattern array based on how the guess compares to the word
     guess = guess.toLowerCase();
 
-    console.log("Word : " + word);
-    console.log("Guess: " + guess);
+    //console.log("Word : " + word);
+    //console.log("Guess: " + guess);
     
     let patternArray = [GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG]
     let wordArray = word.split("")
@@ -142,6 +178,22 @@ function App() {
     return patternArray.join("");
   }
 
+  /**
+   * Updates the keymap based on the most recent data
+   * @param {string} guess the latest guess from the user
+   * @param {string} pattern the effective pattern that was matched to the guess
+   */
+  const updateKeymap = (guess, pattern) => {
+
+    for(let i = 0; i < guess.length; ++i){
+      const newValue = parseInt(pattern[i]);
+
+      if(keymap[guess[i].toUpperCase()] < newValue) {
+        keymap[guess[i].toUpperCase()] = newValue;
+      }
+      
+    }
+  };
 
   return (
     <div className="App">
@@ -159,12 +211,15 @@ function App() {
       </div>
       
       <div className="board">
-        {history.map((entry, index) => (
-          <div key={index}>
-            <span>{entry.guess}</span>
-            <span>{entry.feedback}</span>
-          </div>
+        {history.map((entry) => (
+          <FormatGuess guess={entry.guess} pattern={entry.effectivePattern} />
         ))}
+      </div>
+      <div className="keyboard">
+        <FormatKeymap keymap={keymap} />
+      </div>
+      <div className="note">
+        <span>There are {possibleWords.length} words remaining!</span>
       </div>
     </div>
   );
