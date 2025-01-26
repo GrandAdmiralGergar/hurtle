@@ -293,7 +293,7 @@ function App() {
           { guess.length == 5 ? guess : (guess + "_").padEnd(5) }
         </span>
       </div>
-      {gameOver ? <h2>You did it! The word was obviously <a target="_blank" rel="noopener noreferrer" href={"https://www.merriam-webster.com/dictionary/" + answer}>{answer}</a></h2> : null}      
+      {gameOver ? <h2>You got it in {history.length} tries! The word was obviously <a target="_blank" rel="noopener noreferrer" href={"https://www.merriam-webster.com/dictionary/" + answer}>{answer}</a></h2> : null}
       <div className="keyboard">
         <FormatKeymap keymap={keymap} letterClickFunction={addCharacterToGuess} />
       </div>
