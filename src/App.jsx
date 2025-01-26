@@ -4,7 +4,8 @@ import allWords from './data/words_alpha_five.json'
 import allPatterns from './data/allPatterns.json'
 import defaultKeymap from './data/defaultKeymap.json'
 import defaultKeyPositions from './data/defaultKeyPositions.json'
-import GuessEnum from './guessEnum'
+import GuessEnum from './GuessEnum'
+import InstructionsDialog from './InstructionsDialog'
 
 
 function colorFunction(patternCode) {
@@ -72,6 +73,7 @@ function App() {
   const [answer, setAnswer] = useState('');
   const [gameOver, setGameOver] = useState(false);
   const [keymap, setKeymap] = useState(JSON.parse(JSON.stringify(defaultKeymap))); 
+  const [isInstructionDialogOpen, setIsInstructionDialogOpen] = useState(false);
 
   const guessRef = useRef(guess);
   const possibleWordsRef = useRef(possibleWords);
@@ -85,6 +87,11 @@ function App() {
   useEffect(() => {
     possibleWordsRef.current = possibleWords;
   }, [possibleWords]);
+
+  // Mount the dialog on page load
+  useEffect(() => {
+    setIsInstructionDialogOpen(true);
+  }, []);
 
   // Builds the event listener for all keypresses in window
   useEffect(() => {
@@ -107,6 +114,11 @@ function App() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  const closeInstructionDialog = () => {
+    console.log("GOT HERE");
+    setIsInstructionDialogOpen(false);
+  };
 
   const reset = () => {
     setGuess('');
@@ -282,6 +294,9 @@ function App() {
 
   return (
     <div className="App">
+      {isInstructionDialogOpen && (
+        <InstructionsDialog closeFunction={closeInstructionDialog} />
+      )}
       <h1>Hurtle</h1>
       <div className="board">
         {history.map((entry) => (
