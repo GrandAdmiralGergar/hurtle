@@ -42,22 +42,21 @@ function FormatGuess({ submittedGuess, pattern }) {
  * 
  * @param {keymap} keymap 
  */
-function FormatKeymap({keymap}) {
-  //const keys = Object.keys(keymap);
+function FormatKeymap({keymap, letterClickFunction}) {
 
   const rowSpans = [];
 
   for(let row=0; row<defaultKeyPositions.length; ++row)
   {
-    const spans = []
+    const buttons = []
     for(let letter = 0; letter < defaultKeyPositions[row].length; ++letter) {
-      spans.push(
-        <span key={defaultKeyPositions[row][letter]} style={{ backgroundColor:colorFunction(keymap[defaultKeyPositions[row][letter]])}}>
+      buttons.push(
+        <button key={defaultKeyPositions[row][letter]} onClick={() => letterClickFunction(defaultKeyPositions[row][letter])} style={{ backgroundColor:colorFunction(keymap[defaultKeyPositions[row][letter]])}}>
           {defaultKeyPositions[row][letter]}
-        </span>
+        </button>
       )
     }
-    rowSpans.push(<div key={row}>{spans}</div>);
+    rowSpans.push(<div key={row}>{buttons}</div>);
   }
 
   console.log(rowSpans);
@@ -95,14 +94,15 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (event) => {
       console.log("key pressed: " + event.key);
-      if(/^[a-zA-Z]$/.test(event.key)) {
-        addCharacterToGuess(event.key);
-      }
-      else if (event.key == "Enter") {
+      
+      if (event.key == "Enter") {
         handleSubmit();
       }
       else if (["Backspace","Delete"].includes(event.key)) {
         deleteLastCharacterInGuess();
+      }
+      else {
+        addCharacterToGuess(event.key);
       }
     };
 
@@ -255,10 +255,19 @@ function App() {
    * @param {string} newCharacter the new character to add to the guess
    */
   const addCharacterToGuess = (newCharacter) => {
-    newCharacter = newCharacter.trim();
+    
+    if(/^[a-zA-Z]$/.test(newCharacter)) {
+      newCharacter = newCharacter.trim();
 
-    if(guessRef.current.length < 5) {
-      setGuess((prev) => prev + newCharacter.toUpperCase());
+      if(guessRef.current.length < 5) {
+        setGuess((prev) => prev + newCharacter.toUpperCase());
+      }
+    }
+    else if (newCharacter == "✔") {
+      handleSubmit();
+    }
+    else if (newCharacter == "✖") {
+      deleteLastCharacterInGuess();
     }
   };
 
@@ -287,7 +296,7 @@ function App() {
         </span>
       </div>
       <div className="keyboard">
-        <FormatKeymap keymap={keymap} />
+        <FormatKeymap keymap={keymap} letterClickFunction={addCharacterToGuess} />
       </div>
       <div className="note">
         <span>{gameOver ? "" : "There are " + possibleWords.length + " words remaining!"}</span>

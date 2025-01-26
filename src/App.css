@@ -53,10 +53,6 @@ input {
   padding: 10px;
 }
 
-button {
-  padding: 10px;
-  margin-left: 10px;
-}
 
 .board {
   font-size: 3em;
@@ -77,6 +73,17 @@ button {
   border-width: 1px;
   border-radius: 3px;
   margin-left: 2px;
+}
+
+.keyboard button {
+  padding: 8px;
+  margin-left: 8px;
+  border: black;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 5px;
+  height: 75px;
+  vertical-align: middle;
 }
 
 .note {
