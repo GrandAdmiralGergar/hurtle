@@ -97,3 +97,7 @@ input {
   font-family: monospace;
   white-space: pre; /* Preserves the whitespace padding to keep alignment */
 }
+
+.resetButton {
+  background-color:gray;
+}

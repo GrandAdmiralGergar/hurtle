@@ -59,7 +59,6 @@ function FormatKeymap({keymap, letterClickFunction}) {
     rowSpans.push(<div key={row}>{buttons}</div>);
   }
 
-  console.log(rowSpans);
   return (
     <div>{rowSpans}</div>
   );
@@ -72,7 +71,7 @@ function App() {
   const [possibleWords, setPossibleWords] = useState(allWords); // Assume you have a list of possible words
   const [answer, setAnswer] = useState('');
   const [gameOver, setGameOver] = useState(false);
-  const [keymap, setKeymap] = useState(defaultKeymap); 
+  const [keymap, setKeymap] = useState(JSON.parse(JSON.stringify(defaultKeymap))); 
 
   const guessRef = useRef(guess);
   const possibleWordsRef = useRef(possibleWords);
@@ -80,8 +79,6 @@ function App() {
   // Keeps the guessRef up to date when guess changes
   useEffect(() => {
     guessRef.current = guess;
- //   setGuessIsValidWord(guessRef.current.length === 5 && allWords.includes(guessRef.current));
-    console.log("Guess changed to: " + guess);
   }, [guess]);
 
   // Keeps the possibleWordsRef up to date when possibleWords set changes
@@ -91,9 +88,7 @@ function App() {
 
   // Builds the event listener for all keypresses in window
   useEffect(() => {
-    const handleKeyDown = (event) => {
-      console.log("key pressed: " + event.key);
-      
+    const handleKeyDown = (event) => {      
       if (event.key == "Enter") {
         handleSubmit();
       }
@@ -113,6 +108,15 @@ function App() {
     };
   }, []);
 
+  const reset = () => {
+    setGuess('');
+    setHistory([]);
+    setPossibleWords(allWords);
+    setAnswer('');
+    setGameOver(false);
+    setKeymap(JSON.parse(JSON.stringify(defaultKeymap)));
+  };
+
   /**
    * 
    * @returns True if the guess is a valid word (correct number of characters and in the word list)
@@ -120,15 +124,13 @@ function App() {
   const isGuessValidWord = () => {
     // The length check is to avoid the more computationally expensive 'includes' function
     const result = (guess.length === 5 && allWords.includes(guess));
-    console.log("Is guess valid word result: " + result);
 
     return result;
-  }
+  };
 
   // Function to handle guess submission
   const handleSubmit = () => {
     const submittedGuess = guessRef.current;
-    console.log("Current submitted guess in handle submit: " + submittedGuess);
     
     // Assuming 5-letter words
     if (submittedGuess.trim().length === 5 && allWords.includes(submittedGuess)) { 
@@ -152,14 +154,17 @@ function App() {
       setGuess('');
     } 
     else {
-      console.log("REJECTED!");
+      console.log("DENIED!");
     }
   };
 
+  /**
+   * Eliminates words based on feedback
+   * @param {string} submittedGuess 
+   * @param {Array[string]} remainingWords 
+   * @returns the new set of remaining words, and the feedback that led to that set being chosen
+   */
   const filterPossibleWordsWithPattern = (submittedGuess, remainingWords) => {
-    // Implement a function to eliminate words based on feedback, but also return the feedback pattern
-
-
     // Brute force every possible feedback and filter down remaining words into sets
     // Then we select the feedback that has the most words remaining, which becomes the new 'remainingWords'
     const allPatternStrings = allPatterns;
@@ -171,8 +176,6 @@ function App() {
 
     for (let i = 0; i < remainingWords.length; ++i){
       const determinedPattern = generatePatternDifferential(remainingWords[i], submittedGuess);
-
-      // console.log(determinedPattern);
 
       // Add the word to the correct set
       // NOTE: using push intentionally for optimization, screw you internet!
@@ -199,9 +202,6 @@ function App() {
     // Generates a pattern array based on how the guess compares to the word
     submittedGuess = submittedGuess.toUpperCase();
     word = word.toUpperCase();
-
-    // console.log("Word : " + word);
-    // console.log("Guess: " + submittedGuess);
     
     let patternArray = [GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG]
     let wordArray = word.split("")
@@ -288,12 +288,14 @@ function App() {
           <FormatGuess submittedGuess={entry.submittedGuess} pattern={entry.effectivePattern} />
         ))}
       </div>
+      {!gameOver ?
       <div className="activeInput">
         <span key="activeInput" style={{ backgroundColor: (isGuessValidWord() == false && guess.length == 5) ? "red" : "" }}>
           { guess.length == 5 ? guess : (guess + "_").padEnd(5) }
         </span>
-      </div>
+      </div> : null}
       {gameOver ? <h2>You got it in {history.length} tries! The word was obviously <a target="_blank" rel="noopener noreferrer" href={"https://www.merriam-webster.com/dictionary/" + answer}>{answer}</a></h2> : null}
+      {gameOver ? <button className="resetButton" onClick={ () => reset() }>Try again?</button> : null}
       <div className="keyboard">
         <FormatKeymap keymap={keymap} letterClickFunction={addCharacterToGuess} />
       </div>
