@@ -74,13 +74,15 @@ function App() {
   const [guess, setGuess] = useState('');
   const [history, setHistory] = useState([]);
   const [possibleWords, setPossibleWords] = useState(allWords); // Assume you have a list of possible words
+  const [triedInvalidWord, setTriedInvalidWord] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [keymap, setKeymap] = useState(defaultKeymap); 
 
   // Function to handle guess submission
   const handleSubmit = () => {
     // Assuming 5-letter words
-    if (guess.trim().length === 5) { 
+    if (guess.trim().length === 5 && allWords.includes(guess.toLowerCase())) { 
+      setTriedInvalidWord(false);
 
       const result = filterPossibleWordsWithPattern(guess, possibleWords);
 
@@ -99,6 +101,9 @@ function App() {
       }
 
       setGuess('');
+    }
+    else {
+      setTriedInvalidWord(true);
     }
   };
 
@@ -204,10 +209,10 @@ function App() {
         <input
           type="text"
           value={guess}
-          onChange={(e) => setGuess(e.target.value)}
+          onChange={(e) => setGuess(e.target.value.toUpperCase())}
           maxLength={5}
         />
-        <button onClick={handleSubmit}>Submit Guess</button>
+        <button onClick={handleSubmit}>{ triedInvalidWord ? "Try Again" : "Submit Guess" } </button>
       </div>
       
       <div className="board">
