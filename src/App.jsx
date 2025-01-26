@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import allWords from './data/words_alpha_five.json'
 import allPatterns from './data/allPatterns.json'
@@ -21,14 +21,14 @@ function colorFunction(patternCode) {
   return "black";
 }
 
-function FormatGuess({ guess, pattern }) {
+function FormatGuess({ submittedGuess, pattern }) {
   // Turns a guess text string and the results pattern into something more colorful and actionable
   const spans = [];
 
-  for (let index = 0; index < guess.length; ++index){
+  for (let index = 0; index < submittedGuess.length; ++index){
     spans.push(
-      <span key={guess + index} style={{ fontFamily: 'monospace', backgroundColor:colorFunction(parseInt(pattern[index])) }}>
-        {guess[index]}
+      <span key={submittedGuess + index} style={{ backgroundColor:colorFunction(parseInt(pattern[index])) }}>
+        {submittedGuess[index]}
       </span>
     )
   }
@@ -47,15 +47,12 @@ function FormatKeymap({keymap}) {
 
   const rowSpans = [];
 
-  console.log(defaultKeyPositions);
-  console.log(keymap);
-
   for(let row=0; row<defaultKeyPositions.length; ++row)
   {
     const spans = []
     for(let letter = 0; letter < defaultKeyPositions[row].length; ++letter) {
       spans.push(
-        <span key={defaultKeyPositions[row][letter]} style={{ fontFamily: 'monospace', backgroundColor:colorFunction(keymap[defaultKeyPositions[row][letter]])}}>
+        <span key={defaultKeyPositions[row][letter]} style={{ backgroundColor:colorFunction(keymap[defaultKeyPositions[row][letter]])}}>
           {defaultKeyPositions[row][letter]}
         </span>
       )
@@ -74,40 +71,92 @@ function App() {
   const [guess, setGuess] = useState('');
   const [history, setHistory] = useState([]);
   const [possibleWords, setPossibleWords] = useState(allWords); // Assume you have a list of possible words
-  const [triedInvalidWord, setTriedInvalidWord] = useState(false);
+//  const [triedInvalidWord, setTriedInvalidWord] = useState(false);
+//  const [guessIsValidWord, setGuessIsValidWord] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [keymap, setKeymap] = useState(defaultKeymap); 
 
+  const guessRef = useRef(guess);
+  const possibleWordsRef = useRef(possibleWords);
+
+  // Keeps the guessRef up to date when guess changes
+  useEffect(() => {
+    guessRef.current = guess;
+ //   setGuessIsValidWord(guessRef.current.length === 5 && allWords.includes(guessRef.current));
+    console.log("Guess changed to: " + guess);
+  }, [guess]);
+
+  // Keeps the possibleWordsRef up to date when possibleWords set changes
+  useEffect(() => {
+    possibleWordsRef.current = possibleWords;
+  }, [possibleWords]);
+
+  // Builds the event listener for all keypresses in window
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      console.log("key pressed: " + event.key);
+      if(/^[a-zA-Z]$/.test(event.key)) {
+        addCharacterToGuess(event.key);
+      }
+      else if (event.key == "Enter") {
+        handleSubmit();
+      }
+      else if (["Backspace","Delete"].includes(event.key)) {
+        deleteLastCharacterInGuess();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Cleanup the listener on unmount
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  /**
+   * 
+   * @returns True if the guess is a valid word (correct number of characters and in the word list)
+   */
+  const isGuessValidWord = () => {
+    // The length check is to avoid the more computationally expensive 'includes' function
+    const result = (guess.length === 5 && allWords.includes(guess));
+    console.log("Is guess valid word result: " + result);
+
+    return result;
+  }
+
   // Function to handle guess submission
   const handleSubmit = () => {
+    const submittedGuess = guessRef.current;
+    console.log("Current submitted guess in handle submit: " + submittedGuess);
+    
     // Assuming 5-letter words
-    if (guess.trim().length === 5 && allWords.includes(guess.toLowerCase())) { 
-      setTriedInvalidWord(false);
-
-      const result = filterPossibleWordsWithPattern(guess, possibleWords);
+    if (submittedGuess.trim().length === 5 && allWords.includes(submittedGuess)) { 
+      const result = filterPossibleWordsWithPattern(submittedGuess, possibleWordsRef.current);
 
       const effectivePattern = result.pattern;
 
-      setHistory([...history, { guess, effectivePattern }]);
+      setHistory((prev) => [...prev, { submittedGuess, effectivePattern }]);
 
       console.log("Largest remaining pattern was: " + result.pattern + " with " + result.remainingWords.length + " words remaining");
 
       setPossibleWords(result.remainingWords);
 
-      updateKeymap(guess, effectivePattern);
+      updateKeymap(submittedGuess, effectivePattern);
 
-      if (possibleWords.length === 1) {
+      if (effectivePattern == [GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT].join("")) {
         setGameOver(true);
       }
 
       setGuess('');
-    }
+    } 
     else {
-      setTriedInvalidWord(true);
+      console.log("REJECTED!");
     }
   };
 
-  const filterPossibleWordsWithPattern = (guess, remainingWords) => {
+  const filterPossibleWordsWithPattern = (submittedGuess, remainingWords) => {
     // Implement a function to eliminate words based on feedback, but also return the feedback pattern
 
 
@@ -121,7 +170,7 @@ function App() {
     }
 
     for (let i = 0; i < remainingWords.length; ++i){
-      const determinedPattern = generatePatternDifferential(remainingWords[i], guess);
+      const determinedPattern = generatePatternDifferential(remainingWords[i], submittedGuess);
 
       // console.log(determinedPattern);
 
@@ -146,20 +195,21 @@ function App() {
     };
   };
 
-  const generatePatternDifferential = (word, guess) => {
+  const generatePatternDifferential = (word, submittedGuess) => {
     // Generates a pattern array based on how the guess compares to the word
-    guess = guess.toLowerCase();
+    submittedGuess = submittedGuess.toUpperCase();
+    word = word.toUpperCase();
 
-    //console.log("Word : " + word);
-    //console.log("Guess: " + guess);
+    // console.log("Word : " + word);
+    // console.log("Guess: " + submittedGuess);
     
     let patternArray = [GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG]
     let wordArray = word.split("")
-    let guessArray = guess.split("")
+    let guessArray = submittedGuess.split("")
 
     // Find all the 'correct' items between the word and guess
-    for(let i = 0; i < wordArray.length; ++i){
-      if(wordArray[i] == guessArray[i]){
+    for(let i = 0; i < wordArray.length; ++i) {
+      if(wordArray[i] == guessArray[i]) {
         patternArray[i] = GuessEnum.CORRECT;
         
         // Clear the letter from the word array so we don't accidentally count it later
@@ -170,7 +220,7 @@ function App() {
     // Find the 'right answer wrong places'
     for(let i = 0; i < wordArray.length; ++i){
       if(patternArray[i] != GuessEnum.CORRECT) {
-        let index = wordArray.indexOf(guessArray[i])
+        let index = wordArray.indexOf(guessArray[i]);
         if(index > -1) {
           patternArray[i] = GuessEnum.PLACE;
 
@@ -181,22 +231,43 @@ function App() {
     }
 
     return patternArray.join("");
-  }
+  };
 
   /**
    * Updates the keymap based on the most recent data
-   * @param {string} guess the latest guess from the user
+   * @param {string} submittedGuess the latest guess from the user
    * @param {string} pattern the effective pattern that was matched to the guess
    */
-  const updateKeymap = (guess, pattern) => {
+  const updateKeymap = (submittedGuess, pattern) => {
 
-    for(let i = 0; i < guess.length; ++i){
+    for(let i = 0; i < submittedGuess.length; ++i){
       const newValue = parseInt(pattern[i]);
 
-      if(keymap[guess[i].toUpperCase()] < newValue) {
-        keymap[guess[i].toUpperCase()] = newValue;
-      }
-      
+      if(keymap[submittedGuess[i].toUpperCase()] < newValue) {
+        keymap[submittedGuess[i].toUpperCase()] = newValue;
+      }      
+    }
+  };
+
+
+  /**
+   * Adds a new character to the guess string state variable
+   * @param {string} newCharacter the new character to add to the guess
+   */
+  const addCharacterToGuess = (newCharacter) => {
+    newCharacter = newCharacter.trim();
+
+    if(guessRef.current.length < 5) {
+      setGuess((prev) => prev + newCharacter.toUpperCase());
+    }
+  };
+
+  /**
+   * Removes the most recent character in guess (probably because of a backspace key)
+   */
+  const deleteLastCharacterInGuess = () => {
+    if(guessRef.current.length > 0) {
+      setGuess((prev) => prev.slice(0,-1));
     }
   };
 
@@ -205,26 +276,21 @@ function App() {
       <h1>Hurtle</h1>
       {gameOver ? <p>Game Over! You’ve narrowed it down!</p> : null}
       
-      <div>
-        <input
-          type="text"
-          value={guess}
-          onChange={(e) => setGuess(e.target.value.toUpperCase())}
-          maxLength={5}
-        />
-        <button onClick={handleSubmit}>{ triedInvalidWord ? "Try Again" : "Submit Guess" } </button>
-      </div>
-      
       <div className="board">
         {history.map((entry) => (
-          <FormatGuess guess={entry.guess} pattern={entry.effectivePattern} />
+          <FormatGuess submittedGuess={entry.submittedGuess} pattern={entry.effectivePattern} />
         ))}
+      </div>
+      <div className="activeInput">
+        <span key="activeInput" style={{ backgroundColor: (isGuessValidWord() == false && guess.length == 5) ? "red" : "" }}>
+          { guess.length == 5 ? guess : (guess + "_").padEnd(5) }
+        </span>
       </div>
       <div className="keyboard">
         <FormatKeymap keymap={keymap} />
       </div>
       <div className="note">
-        <span>There are {possibleWords.length} words remaining!</span>
+        <span>{gameOver ? "" : "There are " + possibleWords.length + " words remaining!"}</span>
       </div>
     </div>
   );

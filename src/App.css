@@ -59,18 +59,33 @@ button {
 }
 
 .board {
-}
-
-.board div {
   font-size: 3em;
+  font-family: monospace;
 }
 
 .keyboard {
   margin-top: 80px;
   font-size: 3em;
+  font-family: monospace;
+}
+.keyboard div {
+  margin-top: 10px;
+}
+.keyboard span {
+  border: black;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 3px;
+  margin-left: 2px;
 }
 
 .note {
   margin-top: 30px;
   font-size: 1.5em;
+}
+
+.activeInput {
+  font-size: 3em;
+  font-family: monospace;
+  white-space: pre; /* Preserves the whitespace padding to keep alignment */
 }
