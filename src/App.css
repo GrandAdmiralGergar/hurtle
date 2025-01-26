@@ -1,7 +1,6 @@
 #root {
-  max-width: 1280px;
+  max-width: 500px;
   margin: 0 auto;
-  padding: 2rem;
   text-align: center;
   line-height: 1;
 }
@@ -61,29 +60,31 @@ input {
 
 .keyboard {
   margin-top: 80px;
-  font-size: 3em;
+  font-size: 2em;
   font-family: monospace;
 }
 .keyboard div {
-  margin-top: 10px;
+  margin: 0 auto 8px;
+  width: fit-content;
+  overflow:visible
 }
 .keyboard span {
   border: black;
   border-style: solid;
   border-width: 1px;
   border-radius: 3px;
-  margin-left: 2px;
+  margin-left: 0.1em;
 }
 
 .keyboard button {
-  padding: 8px;
-  margin-left: 8px;
+  padding: 0.25em;
   border: black;
   border-style: solid;
   border-width: 1px;
   border-radius: 5px;
-  height: 75px;
   vertical-align: middle;
+  margin-left: 0.1em;
+  height: 58px;
 }
 
 .note {
