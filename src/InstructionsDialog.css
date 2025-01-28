@@ -21,11 +21,16 @@
   z-index: 1000;
 }
 
+h2 {
+  font-size: x-large;
+}
 p {
   text-align: left;
+  font-size: small;
 }
 
 ul {
+  font-size: small;
   list-style-position: inside; 
   text-align: left;
 }

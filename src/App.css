@@ -1,103 +1,12 @@
-#root {
-  max-width: 500px;
-  margin: 0 auto;
-  text-align: center;
-  line-height: 1;
+.gameModeDiv{
+    width: 100%;
 }
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-/* added from GPT */
-.App {
-  text-align: center;
-  margin-top: 50px;
-}
-
-input {
-  font-size: 20px;
-  padding: 10px;
-}
-
-
-.board {
-  font-size: 3em;
-  font-family: monospace;
-}
-
-.keyboard {
-  margin-top: 80px;
-  font-size: 2em;
-  font-family: monospace;
-}
-.keyboard div {
-  margin: 0 auto 8px;
-  width: fit-content;
-  overflow:visible
-}
-.keyboard span {
-  border: black;
-  border-style: solid;
-  border-width: 1px;
-  border-radius: 3px;
-  margin-left: 0.1em;
-}
-
-.keyboard button {
-  padding: 0.25em;
-  border: black;
-  border-style: solid;
-  border-width: 1px;
-  border-radius: 5px;
-  vertical-align: middle;
-  margin-left: 0.1em;
-  height: 58px;
-}
-
-.note {
-  margin-top: 30px;
-  font-size: 1.5em;
-}
-
-.activeInput {
-  font-size: 3em;
-  font-family: monospace;
-  white-space: pre; /* Preserves the whitespace padding to keep alignment */
-}
-
-.resetButton {
-  background-color:gray;
+.gameModeButton{
+    width: 8em;
+    margin: 0.3em;
+    padding: 0.5em;
+    border: black;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
 }
