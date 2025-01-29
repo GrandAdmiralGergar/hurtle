@@ -15,9 +15,10 @@ function InstructionsDialog({closeFunction}) {
                 </ul>
                 <p>You must strategically narrow down the word bank to a single word and guess it to win</p>
                 <br/>
-                <p>There are now two game modes: </p>
-                <p><b>Free Play</b> lets you try whatever you want in order to win</p>
-                <p><b>Seeded Start</b> forces you to start with a random word, to provide a fresher experience every time</p>
+                <p>There are now three game modes: </p>
+                <p><b>Daily</b> - the definitive Hurtle experience! Compete using the daily starting seed</p>
+                <p><b>Free Play</b> - lets you try whatever you want in order to win</p>
+                <p><b>Seeded</b> - forces you to start with a random word, to provide a fresh experience every time</p>
                 <button onClick={() => closeFunction()}>I am ready for the hurt!</button>
             </div>
         </div>

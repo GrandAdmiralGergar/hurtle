@@ -6,6 +6,7 @@ import defaultKeymap from './data/defaultKeymap.json'
 import defaultKeyPositions from './data/defaultKeyPositions.json'
 import GuessEnum from './GuessEnum'
 import GameModeEnum from './GameModeEnum'
+import seedrandom from 'seedrandom'
 
 
 function colorFunction(patternCode) {
@@ -65,11 +66,13 @@ function FormatKeymap({keymap, letterClickFunction}) {
   );
 }
 
+
+
 // Super hacky workaround of double init issue to get seeds working
-let wasSeedSubmitted = false;
+let wasSeedWordSubmitted = false;
 
 function Game({gameMode}) {
-  wasSeedSubmitted = false;
+  wasSeedWordSubmitted = false;
 
   // State for game
   const [guess, setGuess] = useState('');
@@ -118,7 +121,13 @@ function Game({gameMode}) {
   
   // Initializes the state of the game when it loads, if there is any seeding to do
   useEffect(() => {
-    initializeWithSeed();
+    let seed = null;
+    if(gameMode == GameModeEnum.DAILY_SEED)
+    {
+      const dateString = new Date().toISOString().split('T')[0].replaceAll('-','');
+      seed = parseInt(dateString);
+    }
+    initializeWithSeed(seed);
   }, []);
 
   const reset = () => {
@@ -131,17 +140,21 @@ function Game({gameMode}) {
     
     // Reset all the keys in keymap mutatively
     for(let key in keymap) { keymap[key] = GuessEnum.UNUSED };
-    wasSeedSubmitted = false;
+
+    wasSeedWordSubmitted = false;
+
     initializeWithSeed();
   };
 
-  const initializeWithSeed = () => {
-    const seedWord = allWords[Math.floor(Math.random() * allWords.length)];
-    if(gameMode == GameModeEnum.FREE_SEED && !wasSeedSubmitted) {
+  const initializeWithSeed = (seed) => {    
+    const rng = seedrandom(seed ? seed : (Math.random()*Number.MAX_SAFE_INTEGER))
+    
+    const seedWord = allWords[Math.floor(rng() * allWords.length)];
+    if((gameMode != GameModeEnum.FREE_PLAY) && !wasSeedWordSubmitted) {
       console.log("Starting seeded game with initial word: " + seedWord);
       setGuess(seedWord);
       handleSubmit(seedWord);
-      wasSeedSubmitted = true;
+      wasSeedWordSubmitted = true;
     }
   }
 
@@ -161,7 +174,7 @@ function Game({gameMode}) {
     const submittedGuess = autoGuess != null ? autoGuess : guessRef.current;
     
     // Assuming 5-letter words
-    if (submittedGuess.trim().length === 5 && allWords.includes(submittedGuess)) { 
+    if (submittedGuess.trim().length === 5 && allWords.includes(submittedGuess) && gameOver == false) { 
       const result = filterPossibleWordsWithPattern(submittedGuess, possibleWordsRef.current);
 
       const effectivePattern = result.pattern;
@@ -311,23 +324,24 @@ function Game({gameMode}) {
   return (
     <div className="Game">
       <h1>Hurtle</h1>
-      <div className="board">
+      <div key="board" className="board">
         {history.map((entry) => (
-          <FormatGuess submittedGuess={entry.submittedGuess} pattern={entry.effectivePattern} />
+          <FormatGuess key={"guessFormat" + entry.submittedGuess} submittedGuess={entry.submittedGuess} pattern={entry.effectivePattern} />
         ))}
       </div>
       {!gameOver ?
-      <div className="activeInput">
+      <div key="activeInput" className="activeInput">
         <span key="activeInput" style={{ backgroundColor: (isGuessValidWord() == false && guess.length == 5) ? "red" : "" }}>
           { guess.length == 5 ? guess : (guess + "_").padEnd(5) }
         </span>
       </div> : null}
       {gameOver ? <h2>You got it in {history.length} tries! The word was obviously <a target="_blank" rel="noopener noreferrer" href={"https://www.merriam-webster.com/dictionary/" + answer}>{answer}</a></h2> : null}
-      {gameOver ? <button className="resetButton" onClick={ () => reset() }>Try again?</button> : null}
-      <div className="keyboard">
+      {(gameOver && gameMode != GameModeEnum.DAILY_SEED) ? <button className="resetButton" onClick={ () => reset() }>Try again?</button> : null}
+      {(gameOver && gameMode == GameModeEnum.DAILY_SEED) ? <h2>You completed the daily!<br/> Come back tomorrow!</h2> : null}
+      <div key="keyboard" className="keyboard">
         <FormatKeymap keymap={keymap} letterClickFunction={addCharacterToGuess} />
       </div>
-      <div className="note">
+      <div key="note" className="note">
         <span>{gameOver ? "" : "There are " + possibleWords.length + " words remaining!"}</span>
       </div>
     </div>

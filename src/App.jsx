@@ -6,7 +6,7 @@ import InstructionsDialog from './InstructionsDialog';
 
 function App() {
   const [isInstructionDialogOpen, setIsInstructionDialogOpen] = useState(false);
-  const [selectedMode, setSelectedMode] = useState(GameModeEnum.FREE_PLAY);
+  const [selectedMode, setSelectedMode] = useState(GameModeEnum.DAILY_SEED);
 
   // Mount the dialog on page load
   useEffect(() => {
@@ -30,12 +30,12 @@ function App() {
         )}
         <span><i>Now with game modes!</i></span>
         <div className='gameModeDiv'>
-            {/* <button onClick={() => selectMode(GameModeEnum.DAILY_SEED)}>Daily</button> --> */}
+            <button className={selectedMode == GameModeEnum.DAILY_SEED ? 'pressedGameModeButton' : 'gameModeButton'} onClick={() => selectMode(GameModeEnum.DAILY_SEED)}>Daily</button>
             <button className={selectedMode == GameModeEnum.FREE_PLAY ? 'pressedGameModeButton' : 'gameModeButton'} onClick={() => selectMode(GameModeEnum.FREE_PLAY)}>Free Play</button>
-            <button className={selectedMode == GameModeEnum.FREE_SEED ? 'pressedGameModeButton' : 'gameModeButton'} onClick={() => selectMode(GameModeEnum.FREE_SEED)}>Seeded Start</button>
+            <button className={selectedMode == GameModeEnum.FREE_SEED ? 'pressedGameModeButton' : 'gameModeButton'} onClick={() => selectMode(GameModeEnum.FREE_SEED)}>Seeded</button>
         </div>
         
-        {/*{selectedMode == GameModeEnum.DAILY_SEED && <Game gameMode={selectedMode} />} */}
+        {selectedMode == GameModeEnum.DAILY_SEED && <Game gameMode={selectedMode} />}
         {selectedMode == GameModeEnum.FREE_PLAY && <Game gameMode={selectedMode} />}
         {selectedMode == GameModeEnum.FREE_SEED && <Game gameMode={selectedMode} />}
     </div>
