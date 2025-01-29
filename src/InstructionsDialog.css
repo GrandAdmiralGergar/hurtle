@@ -34,3 +34,10 @@ ul {
   list-style-position: inside; 
   text-align: left;
 }
+
+
+@media (prefers-color-scheme: dark) {
+  .instructions {
+    background-color: black;
+  }
+}
