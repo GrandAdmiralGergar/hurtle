@@ -13,7 +13,7 @@ function colorFunction(patternCode) {
     case GuessEnum.CORRECT:
       return "green";
     case GuessEnum.PLACE:
-      return "yellow";
+      return "goldenrod";
     case GuessEnum.WRONG:
       return "gray";
     case GuessEnum.UNUSED:

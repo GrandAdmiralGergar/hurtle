@@ -31,8 +31,8 @@ function App() {
         <span><i>Now with game modes!</i></span>
         <div className='gameModeDiv'>
             {/* <button onClick={() => selectMode(GameModeEnum.DAILY_SEED)}>Daily</button> --> */}
-            <button className='gameModeButton' onClick={() => selectMode(GameModeEnum.FREE_PLAY)}>Free Play</button>
-            <button className='gameModeButton' onClick={() => selectMode(GameModeEnum.FREE_SEED)}>Seeded Start</button>
+            <button className={selectedMode == GameModeEnum.FREE_PLAY ? 'pressedGameModeButton' : 'gameModeButton'} onClick={() => selectMode(GameModeEnum.FREE_PLAY)}>Free Play</button>
+            <button className={selectedMode == GameModeEnum.FREE_SEED ? 'pressedGameModeButton' : 'gameModeButton'} onClick={() => selectMode(GameModeEnum.FREE_SEED)}>Seeded Start</button>
         </div>
         
         {/*{selectedMode == GameModeEnum.DAILY_SEED && <Game gameMode={selectedMode} />} */}

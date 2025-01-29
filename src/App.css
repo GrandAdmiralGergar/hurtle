@@ -10,3 +10,13 @@
     border-width: 1px;
     border-radius: 5px;
 }
+.pressedGameModeButton{
+    width: 8em;
+    margin: 0.3em;
+    padding: 0.5em;
+    border: black;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 5px;
+    background-color: gray;
+}
