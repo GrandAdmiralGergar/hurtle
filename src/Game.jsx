@@ -8,8 +8,16 @@ import GuessEnum from './GuessEnum'
 import GameModeEnum from './GameModeEnum'
 import seedrandom from 'seedrandom'
 
+function scaleRedToGreen(value) {
+  value = Math.max(0, Math.min(1,value));
 
-function colorFunction(patternCode) {
+  const red = Math.round(255 * (1-value));
+  const green = Math.round(255 * value);
+
+  return "rgb(" + red + ", " + green + ", 0)";
+}
+
+function getColorFromGuessEnum(patternCode) {
   switch(patternCode) {
     case GuessEnum.CORRECT:
       return "green";
@@ -23,20 +31,30 @@ function colorFunction(patternCode) {
   return "black";
 }
 
-function FormatGuess({ submittedGuess, pattern }) {
+function FormatGuess({ submittedGuess, pattern, wasHumanSubmitted, showPercents, percentDecreaseString }) {
+  
+  useEffect(() => {
+    console.log("Updating format guess because of showpercents")
+  }, [showPercents]);
+
   // Turns a guess text string and the results pattern into something more colorful and actionable
   const spans = [];
 
   for (let index = 0; index < submittedGuess.length; ++index){
     spans.push(
-      <span key={submittedGuess + index} style={{ backgroundColor:colorFunction(parseInt(pattern[index])) }}>
+      <span key={submittedGuess + index} style={{ backgroundColor:getColorFromGuessEnum(parseInt(pattern[index])) }}>
         {submittedGuess[index]}
       </span>
     )
   }
 
   return (
-    <div>{spans}</div>
+    <div className="guessFeedbackRow">
+      {spans}
+      {wasHumanSubmitted == true && showPercents == true &&
+        <span className="offsetPercentFeedback" style={{ color: scaleRedToGreen(parseFloat(percentDecreaseString)/100)}}>{percentDecreaseString}%</span>
+      }
+    </div>
   );
 }
 
@@ -53,7 +71,7 @@ function FormatKeymap({keymap, letterClickFunction}) {
     const buttons = []
     for(let letter = 0; letter < defaultKeyPositions[row].length; ++letter) {
       buttons.push(
-        <button key={defaultKeyPositions[row][letter]} onClick={() => letterClickFunction(defaultKeyPositions[row][letter])} style={{ backgroundColor:colorFunction(keymap[defaultKeyPositions[row][letter]])}}>
+        <button key={defaultKeyPositions[row][letter]} onClick={() => letterClickFunction(defaultKeyPositions[row][letter])} style={{ backgroundColor:getColorFromGuessEnum(keymap[defaultKeyPositions[row][letter]])}}>
           {defaultKeyPositions[row][letter]}
         </button>
       )
@@ -71,7 +89,7 @@ function FormatKeymap({keymap, letterClickFunction}) {
 // Super hacky workaround of double init issue to get seeds working
 let wasSeedWordSubmitted = false;
 
-function Game({gameMode}) {
+function Game({gameMode, settings}) {
   wasSeedWordSubmitted = false;
 
   // State for game
@@ -80,7 +98,8 @@ function Game({gameMode}) {
   const [possibleWords, setPossibleWords] = useState(allWords); // Assume you have a list of possible words
   const [answer, setAnswer] = useState('');
   const [gameOver, setGameOver] = useState(false);
-  const [keymap, setKeymap] = useState(JSON.parse(JSON.stringify(defaultKeymap))); 
+  const [keymap, setKeymap] = useState(JSON.parse(JSON.stringify(defaultKeymap)));
+  const [showPercents, setShowPercents] = useState(settings.showPercents);
 
   const guessRef = useRef(guess);
   const possibleWordsRef = useRef(possibleWords);
@@ -95,6 +114,10 @@ function Game({gameMode}) {
     possibleWordsRef.current = possibleWords;
   }, [possibleWords]);
 
+  useEffect(() => { 
+    setShowPercents(settings.showPercents);
+    console.log("Got settings update!");
+  }, [settings])
 
   // Builds the event listener for all keypresses in window
   useEffect(() => {
@@ -171,17 +194,24 @@ function Game({gameMode}) {
 
   // Function to handle guess submission
   const handleSubmit = (autoGuess) => {
+    const wasHumanSubmitted = autoGuess == null;
     const submittedGuess = autoGuess != null ? autoGuess : guessRef.current;
     
     // Assuming 5-letter words
     if (submittedGuess.trim().length === 5 && allWords.includes(submittedGuess) && gameOver == false) { 
+
+      const startingWordsLeft = possibleWordsRef.current.length;
       const result = filterPossibleWordsWithPattern(submittedGuess, possibleWordsRef.current);
+
+      const wordsLeftNow = result.remainingWords.length;
+      const percentDecrease = (1 - (wordsLeftNow / startingWordsLeft)) * 100;
+      const percentDecreaseString = percentDecrease.toFixed(1);
 
       const effectivePattern = result.pattern;
 
-      setHistory((prev) => [...prev, { submittedGuess, effectivePattern }]);
+      setHistory((prev) => [...prev, { submittedGuess, effectivePattern, wasHumanSubmitted, percentDecreaseString }]);
 
-      console.log("Largest remaining pattern was: " + result.pattern + " with " + result.remainingWords.length + " words remaining");
+      console.log("Largest remaining pattern was: " + result.pattern + " with " + wordsLeftNow + " words remaining");
 
       setPossibleWords(result.remainingWords);
 
@@ -326,7 +356,8 @@ function Game({gameMode}) {
       <h1>Hurtle</h1>
       <div key="board" className="board">
         {history.map((entry) => (
-          <FormatGuess key={"guessFormat" + entry.submittedGuess} submittedGuess={entry.submittedGuess} pattern={entry.effectivePattern} />
+          <FormatGuess key={"guessFormat" + entry.submittedGuess} submittedGuess={entry.submittedGuess} pattern={entry.effectivePattern} wasHumanSubmitted={entry.wasHumanSubmitted} showPercents={showPercents} percentDecreaseString={entry.percentDecreaseString} />
+          
         ))}
       </div>
       {!gameOver ?
@@ -335,7 +366,7 @@ function Game({gameMode}) {
           { guess.length == 5 ? guess : (guess + "_").padEnd(5) }
         </span>
       </div> : null}
-      {gameOver ? <h2>You got it in {history.length} tries! The word was obviously <a target="_blank" rel="noopener noreferrer" href={"https://www.merriam-webster.com/dictionary/" + answer}>{answer}</a></h2> : null}
+      {gameOver ? <h2>You got it in {history.reduce((acc, curr) => acc + curr.wasHumanSubmitted,0)} tries! The word was obviously <a target="_blank" rel="noopener noreferrer" href={"https://www.merriam-webster.com/dictionary/" + answer}>{answer}</a></h2> : null}
       {(gameOver && gameMode != GameModeEnum.DAILY_SEED) ? <button className="resetButton" onClick={ () => reset() }>Try again?</button> : null}
       {(gameOver && gameMode == GameModeEnum.DAILY_SEED) ? <h2>You completed the daily!<br/> Come back tomorrow!</h2> : null}
       <div key="keyboard" className="keyboard">

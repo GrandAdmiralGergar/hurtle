@@ -1,11 +1,12 @@
 
 import './InstructionsDialog.css'
+import './Dialog.css'
 
 function InstructionsDialog({closeFunction}) {
 
     return(
         <div className='overlay'>
-            <div className="instructions">
+            <div className="dialogWindow">
                 <h2>This is Hurtle!</h2>
                 <p>It's like that other game, with some key exceptions:</p>
                 <ul>

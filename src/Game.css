@@ -101,3 +101,13 @@ input {
 .resetButton {
   background-color:gray;
 }
+
+.guessFeedbackRow {
+  position: relative;
+}
+.offsetPercentFeedback {
+  font-size: 0.5em;
+  position: absolute;
+  top: 0.5em;
+  right: 2em;
+}
