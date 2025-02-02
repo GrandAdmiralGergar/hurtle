@@ -26,10 +26,10 @@ function App() {
   }
 
   const [isInstructionDialogOpen, setIsInstructionDialogOpen] = useState(false);
-  const [lastInstructionDialogViewTime, setLastInstructionDialogViewTime] = useState(getInstructionsDialogViewFromLocalStorage());
+  const [lastInstructionDialogViewTime, setLastInstructionDialogViewTime] = useState(getInstructionsDialogViewFromLocalStorage);
   const [selectedMode, setSelectedMode] = useState(GameModeEnum.DAILY_SEED);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
-  const [settings, setSettings] = useState(getSettingsFromLocalStorage());
+  const [settings, setSettings] = useState(getSettingsFromLocalStorage);
 
   // Mount the dialog on page load
   useEffect(() => {

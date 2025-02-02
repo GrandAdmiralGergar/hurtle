@@ -33,6 +33,10 @@
   }
 }
 
+h1 {
+  margin-bottom: 5px;
+}
+
 .card {
   padding: 2em;
 }
@@ -56,10 +60,11 @@ input {
 .board {
   font-size: 3em;
   font-family: monospace;
+  margin-top: 0.5em;
 }
 
 .keyboard {
-  margin-top: 80px;
+  margin-top: 3em;
   font-size: 2em;
   font-family: monospace;
 }
@@ -99,12 +104,14 @@ input {
 }
 
 .resetButton {
-  background-color:gray;
+  background-color: gainsboro;
+  padding: 0.2em 1.0em;
 }
 
 .guessFeedbackRow {
   position: relative;
 }
+
 .offsetPercentFeedback {
   font-size: 0.5em;
   position: absolute;
