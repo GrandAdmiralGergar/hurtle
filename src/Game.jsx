@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './Game.css'
 import allWords from './data/words_alpha_five.json'
-import allPatterns from './data/allPatterns.json'
+import { determingPatternWithMostRemainingWords, filterPossibleWordsByPattern } from './WordFiltering'
 import defaultKeymap from './data/defaultKeymap.json'
 import defaultKeyPositions from './data/defaultKeyPositions.json'
 import GuessEnum from './GuessEnum'
@@ -59,7 +59,7 @@ function FormatGuess({ submittedGuess, pattern, wasHumanSubmitted, showPercents,
 }
 
 /**
- * 
+ * Builds out the graphical keymap based on the internal model
  * @param {keymap} keymap 
  */
 function FormatKeymap({keymap, letterClickFunction}) {
@@ -92,9 +92,24 @@ let wasSeedWordSubmitted = false;
 function Game({gameMode, settings}) {
   wasSeedWordSubmitted = false;
 
+  const getGameStateStorageIdentifier = (gameMode) => {
+    return "gameState_" + gameMode;
+  }
+
+  // Pulls out the game state from local storage
+  const getGameStateFromStorage = () => {
+    console.log("Going to pull from local storage: " + getGameStateStorageIdentifier(gameMode));
+    const gameState = localStorage.getItem(getGameStateStorageIdentifier(gameMode));
+    
+    console.log("pulling history from game storage: " + gameState);
+    return gameState ? JSON.parse(gameState) : []
+  }
+
   // State for game
   const [guess, setGuess] = useState('');
-  const [history, setHistory] = useState([]);
+  // The history object looks like:
+  // { submittedGuess, effectivePattern, wasHumanSubmitted, percentDecreaseString }
+  const [history, setHistory] = useState(getGameStateFromStorage);
   const [possibleWords, setPossibleWords] = useState(allWords); // Assume you have a list of possible words
   const [answer, setAnswer] = useState('');
   const [gameOver, setGameOver] = useState(false);
@@ -115,9 +130,14 @@ function Game({gameMode, settings}) {
   }, [possibleWords]);
 
   useEffect(() => { 
-    setShowPercents(settings.showPercents);
     console.log("Got settings update!");
+    setShowPercents(settings.showPercents);
   }, [settings])
+
+  useEffect(() => {
+    console.log("Writing history to storage...");
+    localStorage.setItem(getGameStateStorageIdentifier(gameMode), JSON.stringify(history));
+  }, [history])
 
   // Builds the event listener for all keypresses in window
   useEffect(() => {
@@ -144,6 +164,16 @@ function Game({gameMode, settings}) {
   
   // Initializes the state of the game when it loads, if there is any seeding to do
   useEffect(() => {
+    // If history has length, then we are pulling from game state and we should update things accordingly
+    if(history.length > 0) {
+      console.log("Using history: " + history);
+      history.forEach(element => {
+        possibleWordsRef.current = filterPossibleWordsByPattern(element.submittedGuess, element.effectivePattern, possibleWordsRef.current);
+      });
+      setPossibleWords(possibleWordsRef.current);
+      return; // Don't do other things if we already have history!
+    }
+
     let seed = null;
     if(gameMode == GameModeEnum.DAILY_SEED)
     {
@@ -182,7 +212,7 @@ function Game({gameMode, settings}) {
   }
 
   /**
-   * 
+   * Checks if the current 'guess' variable is actually in our dictionary
    * @returns True if the guess is a valid word (correct number of characters and in the word list)
    */
   const isGuessValidWord = () => {
@@ -201,7 +231,7 @@ function Game({gameMode, settings}) {
     if (submittedGuess.trim().length === 5 && allWords.includes(submittedGuess) && gameOver == false) { 
 
       const startingWordsLeft = possibleWordsRef.current.length;
-      const result = filterPossibleWordsWithPattern(submittedGuess, possibleWordsRef.current);
+      const result = determingPatternWithMostRemainingWords(submittedGuess, possibleWordsRef.current);
 
       const wordsLeftNow = result.remainingWords.length;
       const percentDecrease = (1 - (wordsLeftNow / startingWordsLeft)) * 100;
@@ -229,80 +259,6 @@ function Game({gameMode, settings}) {
     }
   };
 
-  /**
-   * Eliminates words based on feedback
-   * @param {string} submittedGuess 
-   * @param {Array[string]} remainingWords 
-   * @returns the new set of remaining words, and the feedback that led to that set being chosen
-   */
-  const filterPossibleWordsWithPattern = (submittedGuess, remainingWords) => {
-    // Brute force every possible feedback and filter down remaining words into sets
-    // Then we select the feedback that has the most words remaining, which becomes the new 'remainingWords'
-    const allPatternStrings = allPatterns;
-    const patternsMap = new Map();
-
-    for (let i = 0; i < allPatternStrings.length; ++i){
-      patternsMap.set(allPatternStrings[i], []);
-    }
-
-    for (let i = 0; i < remainingWords.length; ++i){
-      const determinedPattern = generatePatternDifferential(remainingWords[i], submittedGuess);
-
-      // Add the word to the correct set
-      // NOTE: using push intentionally for optimization, screw you internet!
-      patternsMap.get(determinedPattern).push(remainingWords[i]);
-    }
-
-    let largestFoundKey = null;
-    let largestValue = 0;
-    
-    // Determine the set with the most words remaining and return that set of words
-    for (const [key,value] of patternsMap.entries()){
-      if(value.length > largestValue) {
-        largestFoundKey = key;
-        largestValue = value.length;
-      }
-    }
-    return {
-      pattern: largestFoundKey, 
-      remainingWords: patternsMap.get(largestFoundKey)
-    };
-  };
-
-  const generatePatternDifferential = (word, submittedGuess) => {
-    // Generates a pattern array based on how the guess compares to the word
-    submittedGuess = submittedGuess.toUpperCase();
-    word = word.toUpperCase();
-    
-    let patternArray = [GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG, GuessEnum.WRONG]
-    let wordArray = word.split("")
-    let guessArray = submittedGuess.split("")
-
-    // Find all the 'correct' items between the word and guess
-    for(let i = 0; i < wordArray.length; ++i) {
-      if(wordArray[i] == guessArray[i]) {
-        patternArray[i] = GuessEnum.CORRECT;
-        
-        // Clear the letter from the word array so we don't accidentally count it later
-        wordArray[i] = "!";
-      }
-    }
-
-    // Find the 'right answer wrong places'
-    for(let i = 0; i < wordArray.length; ++i){
-      if(patternArray[i] != GuessEnum.CORRECT) {
-        let index = wordArray.indexOf(guessArray[i]);
-        if(index > -1) {
-          patternArray[i] = GuessEnum.PLACE;
-
-          // Clear the letter from the word array so we don't accidentally count it later
-          wordArray[index] = "!"
-        }
-      }
-    }
-
-    return patternArray.join("");
-  };
 
   /**
    * Updates the keymap based on the most recent data
