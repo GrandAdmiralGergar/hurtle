@@ -52,7 +52,7 @@ function FormatGuess({ submittedGuess, pattern, wasHumanSubmitted, showPercents,
     <div className="guessFeedbackRow">
       {spans}
       {wasHumanSubmitted == true && showPercents == true &&
-        <span className="offsetPercentFeedback" style={{ color: scaleRedToGreen(parseFloat(percentDecreaseString)/100)}}>{percentDecreaseString}%</span>
+        <span className="offsetPercentFeedback" style={{ color: scaleRedToGreen(parseFloat(percentDecreaseString)/100)}}>{percentDecreaseString ? percentDecreaseString+ "%" :""}</span>
       }
     </div>
   );
@@ -84,6 +84,16 @@ function FormatKeymap({keymap, letterClickFunction}) {
   );
 }
 
+function getDailySeedWord() {
+  const dateString = new Date().toISOString().split('T')[0].replaceAll('-','');
+  const rng = seedrandom(parseInt(dateString));
+
+  return allWords[Math.floor(rng() * allWords.length)];
+}
+
+function getRandomSeedWord() {
+  return allWords[Math.floor(Math.random() * allWords.length)];
+}
 
 
 // Super hacky workaround of double init issue to get seeds working
@@ -98,11 +108,20 @@ function Game({gameMode, settings}) {
 
   // Pulls out the game state from local storage
   const getGameStateFromStorage = () => {
-    console.log("Going to pull from local storage: " + getGameStateStorageIdentifier(gameMode));
     const gameState = localStorage.getItem(getGameStateStorageIdentifier(gameMode));
+
+    const savedHistory = JSON.parse(gameState);
+
+    // Do not use loaded state if the DAILY is no longer valid
+    if(savedHistory && savedHistory.length > 0 && gameMode == GameModeEnum.DAILY_SEED) {
+      let dailySeed = getDailySeedWord();
+      if(savedHistory[0].submittedGuess != dailySeed) {
+        console.log("Ditching saved game state for daily seed - TOO OLD!");
+        return [];
+      }
+    }
     
-    console.log("pulling history from game storage: " + gameState);
-    return gameState ? JSON.parse(gameState) : []
+    return gameState ? savedHistory : []
   }
 
   // State for game
@@ -164,27 +183,32 @@ function Game({gameMode, settings}) {
   
   // Initializes the state of the game when it loads, if there is any seeding to do
   useEffect(() => {
+
     // If history has length, then we are pulling from game state and we should update things accordingly
     if(history.length > 0) {
-      console.log("Using history: " + history);
       history.forEach(element => {
         possibleWordsRef.current = filterPossibleWordsByPattern(element.submittedGuess, element.effectivePattern, possibleWordsRef.current);
+        updateKeymap(element.submittedGuess, element.effectivePattern);
       });
       setPossibleWords(possibleWordsRef.current);
+      if(gameOverCheck(history[history.length-1].effectivePattern)) {
+        setAnswer(history[history.length-1].submittedGuess);
+      }
       return; // Don't do other things if we already have history!
     }
 
-    let seed = null;
+    let seedWord = getRandomSeedWord();
     if(gameMode == GameModeEnum.DAILY_SEED)
     {
-      const dateString = new Date().toISOString().split('T')[0].replaceAll('-','');
-      seed = parseInt(dateString);
+      initializeWithSeedWord(getDailySeedWord());
     }
-    initializeWithSeed(seed);
+    else if (gameMode == GameModeEnum.FREE_SEED) {
+      initializeWithSeedWord(getRandomSeedWord());
+    }
   }, []);
 
   const reset = () => {
-    setGuess('');
+    setGuess("");
     setHistory([]);
     possibleWordsRef.current = allWords;
     setPossibleWords(allWords);
@@ -196,18 +220,20 @@ function Game({gameMode, settings}) {
 
     wasSeedWordSubmitted = false;
 
-    initializeWithSeed();
+    if(gameMode == GameModeEnum.FREE_SEED) {
+      initializeWithSeedWord(getRandomSeedWord());
+    }
   };
 
-  const initializeWithSeed = (seed) => {    
-    const rng = seedrandom(seed ? seed : (Math.random()*Number.MAX_SAFE_INTEGER))
-    
-    const seedWord = allWords[Math.floor(rng() * allWords.length)];
-    if((gameMode != GameModeEnum.FREE_PLAY) && !wasSeedWordSubmitted) {
+  const initializeWithSeedWord = (seedWord) => {    
+    if(!wasSeedWordSubmitted) {
       console.log("Starting seeded game with initial word: " + seedWord);
       setGuess(seedWord);
       handleSubmit(seedWord);
       wasSeedWordSubmitted = true;
+    }
+    else {
+      console.log("Cannot initialize seed word " + seedWord);
     }
   }
 
@@ -217,7 +243,7 @@ function Game({gameMode, settings}) {
    */
   const isGuessValidWord = () => {
     // The length check is to avoid the more computationally expensive 'includes' function
-    const result = (guess.length === 5 && allWords.includes(guess));
+    const result = (guess && guess.length === 5 && allWords.includes(guess));
 
     return result;
   };
@@ -235,22 +261,20 @@ function Game({gameMode, settings}) {
 
       const wordsLeftNow = result.remainingWords.length;
       const percentDecrease = (1 - (wordsLeftNow / startingWordsLeft)) * 100;
-      const percentDecreaseString = percentDecrease.toFixed(1);
+      let percentDecreaseString = percentDecrease.toFixed(1);
 
       const effectivePattern = result.pattern;
 
+      setPossibleWords(result.remainingWords);
+      updateKeymap(submittedGuess, effectivePattern);
+
+      if(gameOverCheck(effectivePattern)){      
+        setAnswer(submittedGuess);
+        percentDecreaseString = "";
+      }
       setHistory((prev) => [...prev, { submittedGuess, effectivePattern, wasHumanSubmitted, percentDecreaseString }]);
 
       console.log("Largest remaining pattern was: " + result.pattern + " with " + wordsLeftNow + " words remaining");
-
-      setPossibleWords(result.remainingWords);
-
-      updateKeymap(submittedGuess, effectivePattern);
-
-      if (effectivePattern == [GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT].join("")) {
-        setGameOver(true);
-        setAnswer(submittedGuess);
-      }
 
       setGuess('');
     } 
@@ -259,6 +283,14 @@ function Game({gameMode, settings}) {
     }
   };
 
+  const gameOverCheck = (latestPattern) => {
+    if (latestPattern == [GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT, GuessEnum.CORRECT].join("")) {
+      console.log("game over man, game over!");
+      setGameOver(true);
+      return true;
+    }
+    return false;
+  };
 
   /**
    * Updates the keymap based on the most recent data
@@ -272,7 +304,7 @@ function Game({gameMode, settings}) {
 
       if(keymap[submittedGuess[i].toUpperCase()] < newValue) {
         keymap[submittedGuess[i].toUpperCase()] = newValue;
-      }      
+      }
     }
   };
 
@@ -310,6 +342,13 @@ function Game({gameMode, settings}) {
   return (
     <div className="Game">
       <h1>Hurtle</h1>
+      {(gameMode != GameModeEnum.DAILY_SEED) && 
+        <button className="resetButton" 
+        onClick={ () => reset() } 
+        onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault();}}>
+          Reset
+        </button>
+      }
       <div key="board" className="board">
         {history.map((entry) => (
           <FormatGuess key={"guessFormat" + entry.submittedGuess} submittedGuess={entry.submittedGuess} pattern={entry.effectivePattern} wasHumanSubmitted={entry.wasHumanSubmitted} showPercents={showPercents} percentDecreaseString={entry.percentDecreaseString} />
@@ -319,11 +358,10 @@ function Game({gameMode, settings}) {
       {!gameOver ?
       <div key="activeInput" className="activeInput">
         <span key="activeInput" style={{ backgroundColor: (isGuessValidWord() == false && guess.length == 5) ? "red" : "" }}>
-          { guess.length == 5 ? guess : (guess + "_").padEnd(5) }
+          { (guess.length == 5) ? guess : (guess + "_").padEnd(5) }
         </span>
       </div> : null}
       {gameOver ? <h2>You got it in {history.reduce((acc, curr) => acc + curr.wasHumanSubmitted,0)} tries! The word was obviously <a target="_blank" rel="noopener noreferrer" href={"https://www.merriam-webster.com/dictionary/" + answer}>{answer}</a></h2> : null}
-      {(gameOver && gameMode != GameModeEnum.DAILY_SEED) ? <button className="resetButton" onClick={ () => reset() }>Try again?</button> : null}
       {(gameOver && gameMode == GameModeEnum.DAILY_SEED) ? <h2>You completed the daily!<br/> Come back tomorrow!</h2> : null}
       <div key="keyboard" className="keyboard">
         <FormatKeymap keymap={keymap} letterClickFunction={addCharacterToGuess} />
